@@ -121,6 +121,155 @@ jobs:
           paths:
             - project/.circleci/ansible/inventory.txt 
           # Here's where you will add some code to rollback on failure           
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.12
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+             - b5:5a:31:12:f5:b6:c6:76:a6:0d:e8:62:28:2a:51:71
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            cd ~/project/.circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
+      # Here's where you will add some code to rollback on failure  
+  run-migrations:
+    docker:
+      # Docker image here that supports NodeJS
+      - image: python:3.7-alpine3.11
+    steps:
+      # Checkout code from git
+      - checkout
+      - run:
+            name: Install dependencies
+            command: |
+              # Your code here
+              apk update
+              apk upgrade
+              apk add unzip 
+              apk add curl
+              /usr/local/bin/python -m pip install --upgrade pip    
+      - run:
+            name: Install node
+            command: |
+              apk add --update nodejs nodejs-npm
+              node --version
+              npm --version
+      - run:
+          name: Run migrations
+          command: |
+            # Your code here
+            cd backend
+            npm install
+            # Run and sve the migration output
+            npm run migrations > ~/project/backend/migrations_dump.txt
+            echo `cat migrations_dump.txt`  
+
+      - destroy-environment:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"  
+      - revert-migrations:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
+
+  deploy-backend:
+    docker:
+      - image: python:3.7-alpine3.11
+  # Make sure ubuntu is 20.04 in backend.yml or you will have issues with PM2. read .circleci/backend/files for more info
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - b5:5a:31:12:f5:b6:c6:76:a6:0d:e8:62:28:2a:51:71
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+            apk add --update tar gzip nodejs npm
+            apk add --update openssh-client
+      - run:
+          name: Compress Backend
+          command: |
+            [[ ! -d backend ]] && mkdir backend
+            myenv="backend/.env"
+            echo ENVIROMENT=production > $myenv
+            echo NODE_ENV=production >> $myenv
+            echo TYPEORM_CONNECTION=postgres >> $myenv
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> $myenv
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> $myenv
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> $myenv
+            echo TYPEORM_HOST=$TYPEORM_HOST >> $myenv
+            echo TYPEORM_PORT=$TYPEORM_PORT >> $myenv
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> $myenv
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> $myenv
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> $myenv
+            cat $myenv
+            tar -C backend -czvf artifact.tar.gz .
+            ls -la
+      - run:
+          name: Deploy backend
+          command: |
+            ANSIBLE_HOST_KEY_CHECKING=False
+            pwd
+            cat .circleci/ansible/inventory.txt
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+
+      - destroy-environment:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"    
+      - revert-migrations:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
+
+  deploy-frontend:
+    docker:
+      # Docker image here that supports AWS CLI
+      - image: circleci/node:13.8.0
+    steps:
+      # Checkout code from git
+      - checkout
+      - run:
+          name: update
+          command: |  
+            sudo apt update && sudo apt upgrade            
+            sudo apt install curl
+      - run:
+          name: Install aws
+          command: |                        
+            sudo apt-get install python python-pip
+            sudo pip install awscli
+            aws --version
+      - run:
+          name: Get backend url
+          command: |
+            # your code here
+            export BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[0].Instances[0].PublicIpAddress' --filters Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} --output text) 
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
+            
+      - run:
+          name: Deploy frontend objects
+          command: |
+            # your code here
+            cd frontend
+            npm install
+            npm run build
+            npm audit fix
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"        
+      - revert-migrations:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"       
 
 
 workflows:
@@ -141,4 +290,12 @@ workflows:
           filters:
             branches:
               only: [main]
+     - configure-infrastructure:
+          requires: [deploy-infrastructure]
+     - run-migrations:
+            requires: [configure-infrastructure]  
+     - deploy-backend:
+          requires: [run-migrations]               
+     - deploy-frontend:
+          requires: [deploy-backend]  
     
