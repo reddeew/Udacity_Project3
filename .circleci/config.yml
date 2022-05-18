@@ -182,7 +182,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - 8a:c5:e5:91:a9:a3:6f:63:8b:80:e0:8a:fb:69:aa:c1
+            - e6:0f:75:d7:ee:42:61:6b:f5:cf:d5:20:d5:63:59:15
       - attach_workspace:
           at: ~/
       - run:
@@ -283,9 +283,9 @@ workflows:
      - configure-infrastructure:
           requires: [deploy-infrastructure]
      - run-migrations:
-            requires: [configure-infrastructure]           
+            requires: [configure-infrastructure]    
+     - deploy-backend:
+          requires: [run-migrations]            
      - deploy-frontend:
           requires: [deploy-backend]  
-     - deploy-backend:
-          requires: [run-migrations] 
     
