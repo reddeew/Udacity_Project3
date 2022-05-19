@@ -37,7 +37,6 @@ commands:
               echo "roll back migration completed"
             fi
               echo "Revert migrations finish..." 
-           
 jobs:
   build-frontend:
     docker:
@@ -127,8 +126,7 @@ jobs:
              # Your code here
              cd ./backend
              npm i
-             npm audit fix --audit-level=critical        
-
+             npm audit fix --audit-level=critical   
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
@@ -157,7 +155,7 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt 
-          # Here's where you will add some code to rollback on failure           
+          # Here's where you will add some code to rollback on failure 
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.12
@@ -165,7 +163,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-             - e6:0f:75:d7:ee:42:61:6b:f5:cf:d5:20:d5:63:59:15
+             - b5:5a:31:12:f5:b6:c6:76:a6:0d:e8:62:28:2a:51:71
       - attach_workspace:
           at: ~/
       - run:
@@ -209,11 +207,11 @@ jobs:
             # Run and sve the migration output
             npm run migrations > ~/project/backend/migrations_dump.txt
             echo `cat migrations_dump.txt`  
+
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"  
       - revert-migrations:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"  
-    
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
 
   deploy-backend:
     docker:
@@ -223,7 +221,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - e6:0f:75:d7:ee:42:61:6b:f5:cf:d5:20:d5:63:59:15
+            - b5:5a:31:12:f5:b6:c6:76:a6:0d:e8:62:28:2a:51:71
       - attach_workspace:
           at: ~/
       - run:
@@ -258,11 +256,11 @@ jobs:
             pwd
             cat .circleci/ansible/inventory.txt
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"    
       - revert-migrations:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
-    
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
 
   deploy-frontend:
     docker:
@@ -306,8 +304,7 @@ jobs:
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"        
       - revert-migrations:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"  
-   
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"       
   smoke-test:
     docker:
       - image: python:3.7-alpine3.11
@@ -369,10 +366,12 @@ jobs:
             else
               return 1
             fi
+      # Here's where you will add some code to rollback on failure
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"        
       - revert-migrations:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
+
   cloudfront-update:
     docker:
       - image: amazon/aws-cli
@@ -411,8 +410,6 @@ jobs:
             else
               echo "No old workflow exists"
             fi            
-   
-
 workflows:
   default:
     jobs:
@@ -434,9 +431,9 @@ workflows:
      - configure-infrastructure:
           requires: [deploy-infrastructure]
      - run-migrations:
-            requires: [configure-infrastructure]    
+            requires: [configure-infrastructure]  
      - deploy-backend:
-          requires: [run-migrations]            
+          requires: [run-migrations]               
      - deploy-frontend:
           requires: [deploy-backend]  
      - smoke-test:
@@ -444,5 +441,7 @@ workflows:
      - cloudfront-update:
           requires: [smoke-test]   
      - cleanup:
-          requires: [cloudfront-update]
-    
+          requires: [cloudfront-update]          
+               
+ 
+               

@@ -1,0 +1,18 @@
+URLS:
+
+Github
+---
+https://github.com/charankumarthirumala/CI-CD-Project3
+
+S3Bucket URL:
+--
+http://udapeople-5571649.s3-website-us-east-1.amazonaws.com
+
+Cloud Front URL:
+
+https://d3r004hr9a5u1z.cloudfront.net
+
+Prmoethues URL:
+
+http://ec2-52-91-240-130.compute-1.amazonaws.com:9090/targets
+
