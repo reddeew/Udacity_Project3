@@ -20,10 +20,10 @@ Resources:
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName: !Sub "udapeople-${WorkflowID}.s3-website-us-east-1.amazonaws.com"
+          - DomainName: !Sub "udapeople-${WorkflowID}.s3.amazonaws.com"
             Id: webpage
             S3OriginConfig:
-              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/E3R7HD7J090NJF"
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
         Enabled: True
         DefaultRootObject: index.html
         DefaultCacheBehavior:
