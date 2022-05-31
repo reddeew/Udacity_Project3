@@ -1,6 +1,6 @@
 URL01 - https://github.com/reddeew/Udacity_Project3
-URL02 - http://udapeople-c667a21.s3-website-us-east-1.amazonaws.com
-URL03 - http://d3r004hr9a5u1z.cloudfront.net
-URL04 - http://34.238.116.134:3030/api/status
-URL05 - http://ec2-3-87-195-200.compute-1.amazonaws.com:9090/targets 
+URL02 - http://udapeople-b60cd83.s3-website-us-east-1.amazonaws.com
+URL03 - http://d2gxsnauw2pzyc.cloudfront.net
+URL04 - http://ec2-3-88-236-122.compute-1.amazonaws.com:3030/api/status
+URL05 - http://ec2-52-207-220-209.compute-1.amazonaws.com:9090/targets 
 
